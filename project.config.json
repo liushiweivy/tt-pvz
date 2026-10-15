@@ -1,0 +1,25 @@
+{
+  "description": "植物大战僵尸（17 植物 10 僵尸 6 关横版塔防抖音小游戏，Canvas 移植版）",
+  "packOptions": {
+    "ignore": [
+      { "type": "folder", "value": "tests" },
+      { "type": "folder", "value": "harness" },
+      { "type": "folder", "value": "docs" },
+      { "type": "file", "value": "start.bat" },
+      { "type": "file", "value": "README.md" },
+      { "type": "file", "value": "PROGRESS.md" },
+      { "type": "file", "value": ".gitignore" }
+    ]
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": false,
+    "minified": false
+  },
+  "compileType": "game",
+  "appid": "",
+  "projectname": "tt-pvz",
+  "libVersion": "latest",
+  "condition": {}
+}

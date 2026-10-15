@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080, initial-scale=1, user-scalable=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%233a5a22'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%23ffd640'/%3E%3C/svg%3E">
+<title>植物大战僵尸 · tt harness (M0)</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #05070f; height: 100%; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #frame { width: 1080px; height: 720px; box-shadow: 0 0 40px rgba(0,0,0,.8); position: relative; }
+  canvas#game { display: block; width: 1080px; height: 720px; touch-action: none; }
+  #tag { position: absolute; left: 8px; top: -22px; color: #8a93a8; font: 12px/1.2 monospace; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <canvas id="game" width="1080" height="720"></canvas>
+  <div id="tag"></div>
+</div>
+<script>
+/* ---- 极简 CommonJS 加载器（同步 XHR） ---- */
+const modules = {};
+function resolve(p, fromDir) {
+  const base = (fromDir || '').split('/').slice(0, -1);
+  p.split('/').forEach(seg => {
+    if (seg === '..') base.pop();
+    else if (seg !== '.' && seg !== '') base.push(seg);
+  });
+  return base.join('/');
+}
+function load(path, fromDir) {
+  const full = resolve(path, fromDir || '');
+  if (modules[full]) return modules[full].exports;
+  const m = { exports: {} };
+  modules[full] = m;
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', '/' + full, false);
+  xhr.send();
+  if (xhr.status !== 200) throw new Error('load fail ' + full + ' ' + xhr.status);
+  const fn = new Function('module', 'exports', 'require', '__dirname', xhr.responseText);
+  const localRequire = p => load(p, full);
+  fn(m, m.exports, localRequire, full.split('/').slice(0, -1).join('/'));
+  return m.exports;
+}
+
+/* ---- tt（抖音小游戏）浏览器 shim ----
+ * ?strict=1   严格抖音契约：Touch 只给 identifier/screenX/screenY
+ * ?dpr=3      模拟高 DPR 设备（pixelRatio=3）
+ * ?physical=1 strict 下触摸按物理像素上报（screenX = 逻辑*dpr）→ 验证 1/dpr 自校正
+ * ?swapped=1  模拟横屏轴对调（screenX/Y 交换）：单用时看十字光标错位（肉眼确认）；
+ *             仍越窗 warn 需配合 dpr=3&physical=1（归一前提是物理像素上报）
+ * ?sound=1    真实 AudioContext（需一次受信点击解锁）
+ */
+const Q = new URLSearchParams(location.search);
+const SOUND = Q.get('sound') === '1';
+const STRICT = Q.get('strict') === '1';
+const DPR = Number(Q.get('dpr') || 1);
+const PHYSICAL = Q.get('physical') === '1';
+const SWAPPED = Q.get('swapped') === '1';
+document.getElementById('tag').textContent =
+  'strict=' + STRICT + ' dpr=' + DPR + ' physical=' + PHYSICAL + ' swapped=' + SWAPPED + ' sound=' + SOUND;
+
+const canvas = document.getElementById('game');
+const rectOf = () => canvas.getBoundingClientRect();
+function touchLike(e, id) {
+  const r = rectOf();
+  let x = (e.clientX - r.left), y = (e.clientY - r.top);
+  if (SWAPPED) { const t = x; x = y; y = t; }
+  if (PHYSICAL) { x *= DPR; y *= DPR; }
+  const t = { identifier: id != null ? id : 0, screenX: x, screenY: y };
+  if (!STRICT) { t.clientX = (e.clientX - r.left); t.clientY = (e.clientY - r.top); }
+  return t;
+}
+const startH = [], moveH = [], endH = [], cancelH = [], showH = [], hideH = [];
+globalThis.tt = {
+  getWindowInfo: () => ({
+    windowWidth: 1080, windowHeight: 720, pixelRatio: DPR,
+    screenWidth: 1080, screenHeight: 720
+  }),
+  getSystemInfoSync: () => ({
+    windowWidth: 1080, windowHeight: 720, pixelRatio: DPR,
+    screenWidth: 1080, screenHeight: 720
+  }),
+  createCanvas: () => canvas,
+  onTouchStart: h => startH.push(h),
+  onTouchMove: h => moveH.push(h),
+  onTouchEnd: h => endH.push(h),
+  onTouchCancel: h => cancelH.push(h),
+  onShow: h => showH.push(h),
+  onHide: h => hideH.push(h),
+  setKeepScreenOn: () => {},
+  vibrateShort: () => {},
+  getAudioContext: () => {
+    if (!SOUND) throw new Error("muted in harness");
+    return new AudioContext();
+  },
+  _life: {
+    show: () => showH.forEach(h => h()),
+    hide: () => hideH.forEach(h => h())
+  }
+};
+function dispatch(list, ev) { list.forEach(h => h(ev)); }
+let down = false;
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault(); down = true;
+  dispatch(startH, { changedTouches: [touchLike(e)] });
+});
+window.addEventListener('mousemove', e => {
+  if (down) dispatch(moveH, { changedTouches: [touchLike(e)] });
+});
+window.addEventListener('mouseup', e => {
+  down = false;
+  dispatch(endH, { changedTouches: [touchLike(e)] });
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  dispatch(startH, { changedTouches: [].map.call(e.changedTouches, t => touchLike(t, t.identifier)) });
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  dispatch(moveH, { changedTouches: [].map.call(e.changedTouches, t => touchLike(t, t.identifier)) });
+}, { passive: false });
+window.addEventListener('touchend', e => dispatch(endH, { changedTouches: [].map.call(e.changedTouches, t => touchLike(t, t.identifier)) }));
+window.addEventListener('touchcancel', e => dispatch(cancelH, { changedTouches: [].map.call(e.changedTouches, t => touchLike(t, t.identifier)) }));
+
+/* ---- 启动小游戏 ---- */
+load('js/main.js');
+</script>
+</body>
+</html>
