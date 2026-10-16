@@ -3,7 +3,38 @@
 > 2026-10-16。源：`E:\1workspace\pythonCode\plants_vs_zombies`（pvs/ 22 模块 4643 行，17 植物/10 僵尸/6 关，58 个 Python 测试当机制规格书）。
 > 总计划见 `C:\Users\4v\.claude\plans\vivid-gliding-corbato.md` WF4（M0–M7，约 5200 行）。**续做先读本文件。**
 
-## 当前状态：M0 完成并通过 code review（APPROVE，0 C/H；2 MEDIUM + 6 LOW 全修复）+ 浏览器回归闭环；待 DevTools 真机编译（WF0 等用户过 UAC + 抖音号登录）
+## 当前状态：M1 进行中（约 60%）——2026-10-16 关机断点，续做从本节开始
+
+### M1 已落盘且测试全绿（core 17/17 + **m1 14/14**）
+
+| 文件 | 状态 |
+|---|---|
+| `js/config.js` | ✅ 全量：PLANT_SPECS 17/ZOMBIE_SPECS 10/LEVELS 6/经济行为常量/NIGHT 调色板/HUD 布局（SUN_PLATE/CARD_*/SHOVEL_RECT/BAR_RECT）/HOUSE_W |
+| `js/save.js` | ✅ 注入式存档（default/load/write/recordWin/toggleMusic，不可变；存储 key `pvz_save`，坏数据回退+字段防护） |
+| `js/menu.js` | ✅ 菜单纯逻辑：levelRects（150 卡 y356 居中 x0=40）/musicRect (930,18,132,36)/helpPanel/tapAt（level/locked/music/null）/createMenuModel+update（装饰阳光 3.2s 间隔 9s 寿命，注入 rng） |
+| `js/render/sprites.js` | ✅ createKit(createCanvas)：get(key,w,h,fn) Map 缓存 + silhouette(src,key) source-in 白剪影 + canvas() 离屏工厂 |
+| `js/render/draw.js` | ✅ 图元：rgb/circle(描边width)/ellipse/rect(带radius)/polygon/line/lines/arc/eyes；颜色全数组 |
+| `js/render/text.js` | ✅ drawText（center 时 middle 基线）+ textSprite |
+| `js/render/assets-common.js` | ✅ 日夜背景(缓存 bg:day/bg:night，含云/棋盘/土带石子种子化/房子/车道/夜：星点+月亮 ImageData 径向晕烘离屏后 lighter drawImage)、drawSun（glow lighter + ray 旋转缓存）、shovel/pause/speed 图标 |
+| `js/render/assets-plants.js` | ✅ **17 植物立绘全移植** 96×96 缓存 plant:name:state:frame；shooterBody/tubeSprite/stampRotated、蘑菇部件、jagged 冰盖等；土豆卡槽用 state 1 |
+
+### M1 剩余（续做顺序）
+
+1. **`js/render/menu.js`**：组装菜单画面（母本 menu.py draw：bg + 标题 bob sin(t*2)*6 + 两侧 sunflower/peashooter 84px + 六卡（锁/勾/前两植物 52px，卡名 LEVELS[lv].name 去掉"白天 "前缀）+ 帮助面板 540 + 音乐按钮 + 装饰阳光 drawSun）。tapAt 已在 core，render 只吃 hover。
+2. **`js/render/hud.js`**：静态 HUD（母本 hud.py：木条/阳光盘 drawSun+数字/种子卡 draw_card（冷却/affordable/selected 三态，plantImage 54px+价格条）/铲子/进度条旗帜标记/pause·2x 按钮）。M1 只画静态假数据（构造演示 scene：sun=175、cooldowns 全 0、progress 0），M2 接真 level。
+3. **main.js 场景化**：scene 状态机 `menu` → 点关卡进 `preview`（静态 bg+HUD+返回，M2 换 LevelScene）；M0 探针画面保留为 `?probe=1` harness 参数（触摸归一回归还要用）。接 tt storage 给 save（封装 {get:tt.getStorageSync,set:tt.setStorageSync}，注意 tt 的 API 签名是 (k,v) 同步）；harness shim 补内存 storage。
+4. **浏览器验证（未做，首要！）**：assets-plants 从未在真 canvas 画过——harness 开菜单页与 17 植物陈列页（可加 `?sprites=1` 调试陈列：全部 state0 立绘+日夜背景），与 `pythonCode/plants_vs_zombies/screenshots/01_menu.png` 逐屏比图，截图归档 docs/。重点查：tubeSprite 旋转中心、sunflower 花瓣 rotatedEllipse、night 月光 lighter、文字字体回退。
+5. **code-reviewer 审查 M1 全部新文件**（render/ 5 个 + menu/save/config），修 C/H/M。
+6. 更新 README/PROGRESS/记账。
+
+### M1 测试（tests/m1.test.mjs，14 个）
+
+config 4（17 植物字段+抽检/10 僵尸特殊字段/6 关白夜结构/经济与布局常量+NIGHT）、save 4（缺省坏数据/合并/写入异常/recordWin 不可变去重+toggleMusic）、menu 4（卡片几何/tapAt 三态/音乐区/装饰阳光寿命）、sprites 2（缓存命中一次绘制/silhouette source-in 顺序）。
+**注意**：菜单装饰阳光间隔是生成后重置完整 3.2s（非均匀），测试 update(1.0)→1 个、再 update(3.3)→2 个。
+
+---
+
+## M0（已完成并通过 code review：APPROVE，0 C/H；2 MEDIUM + 6 LOW 全修复，浏览器回归闭环；真机编译待 WF0 用户过 UAC + 抖音号登录）
 
 ### M0 审查修复（2026-10-16，已全部关闭）
 

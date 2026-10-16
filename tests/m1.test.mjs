@@ -177,7 +177,7 @@ test("menu：装饰阳光按 3.2s 间隔生成、9s 寿命消失（注入 rng）
   assert.strictEqual(m.suns.length, 0);
   menu.update(m, 1.0);
   assert.strictEqual(m.suns.length, 1); // 初始 sun_t=1.0
-  menu.update(m, 2.2);
+  menu.update(m, 3.3);                  // 首个后重置为完整 3.2s 间隔
   assert.strictEqual(m.suns.length, 2);
   // 快进超过寿命
   for (var i = 0; i < 600; i++) menu.update(m, 1 / 60);
